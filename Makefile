@@ -1,53 +1,34 @@
-<<<<<<< HEAD
 SHELL := /bin/bash
 
 up:
-\tdocker compose up -d --build
+	docker compose up -d --build
 
 down:
-\tdocker compose down
+	docker compose down
 
 ps:
-\tdocker compose ps
+	docker compose ps
 
 logs:
-\tdocker compose logs -f --tail=200
+	docker compose logs -f --tail=200
 
 sh-controller:
-\tdocker compose exec controller bash
+	docker compose exec controller bash
 
 sh-playflow:
-\tdocker compose exec playflow bash
+	docker compose exec playflow bash
+
+sh-emulator:
+	docker compose exec emulator bash
 
 adb-devices:
-\tdocker compose exec controller adb devices
+	docker compose exec controller adb devices
 
 emu-connect:
-\tdocker compose exec controller adb connect droid_emulator:5555
-=======
-SHELL := /bin/bash
+	docker compose exec controller adb connect droid_emulator:5555
 
-up:
-\tdocker compose up -d --build
+pf-logs:
+	docker compose logs -f playflow
 
-down:
-\tdocker compose down
-
-ps:
-\tdocker compose ps
-
-logs:
-\tdocker compose logs -f --tail=200
-
-sh-controller:
-\tdocker compose exec controller bash
-
-sh-playflow:
-\tdocker compose exec playflow bash
-
-adb-devices:
-\tdocker compose exec controller adb devices
-
-emu-connect:
-\tdocker compose exec controller adb connect droid_emulator:5555
->>>>>>> 8de3c6bc73da24e02bd0a1b96ad168f6131dc1c5
+pf-restart:
+	docker compose restart playflow

@@ -66,3 +66,22 @@ docker exec pf_emulator adb devices
 docker inspect -f '{{.State.Health.Status}}' pf_emulator
 
 docker compose up -d --force-recreate
+
+
+# 1. ตั้ง remote ให้ชี้ไปที่ GitHub (ถ้ายังไม่ได้ตั้ง)
+git remote add origin https://github.com/geekp2p/DroidCluster.git
+
+# 2. ดึง commit ล่าสุดจาก GitHub ลงมา (เฉพาะ main)
+git fetch origin main
+
+# 3. รวม history (เลือกใช้ merge แบบ keep ทั้งสองฝั่ง)
+git pull origin main --allow-unrelated-histories
+
+# 4. แก้ conflict ถ้ามี (เปิดไฟล์แล้วแก้, จากนั้น)
+git add .
+git commit -m "merge local and remote history"
+
+# 5. push ขึ้น GitHub พร้อมตั้งค่า upstream
+git push -u origin main
+
+git push -u origin main --force
