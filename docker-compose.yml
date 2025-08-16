@@ -21,6 +21,7 @@ services:
       - adb_keys:/root/.android
       - ./templates:/opt/dcluster/templates:ro
       - ./scripts:/opt/dcluster/scripts:ro
+    entrypoint: ["/bin/bash","-lc","/opt/dcluster/scripts/controller-entrypoint.sh"]
     healthcheck:
       test: ["CMD-SHELL","adb start-server >/dev/null 2>&1 && adb devices | grep -q 'List of devices'"]
       start_period: 180s
@@ -42,7 +43,7 @@ services:
       - "6080:6080"   # noVNC
       - "5555:5555"   # adbd
     healthcheck:
-      test: ["CMD-SHELL","nc -z localhost 5555 && nc -z localhost 6080"]
+      test: ["CMD-SHELL","bash -lc 'exec 3<>/dev/tcp/127.0.0.1/5555 && exec 3>&-; exec 3<&-; exit 0' && curl -fsS http://127.0.0.1:6080 >/dev/null"]
       start_period: 180s
       interval: 15s
       timeout: 10s

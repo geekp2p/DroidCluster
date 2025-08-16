@@ -27,6 +27,9 @@ emu-logs:
 sh-controller:
 	docker compose exec controller bash
 
+ctrl-shell: sh-controller
+
+
 sh-playflow:
 	docker compose exec playflow bash
 
@@ -34,6 +37,13 @@ pf-shell: sh-playflow
 
 sh-emulator:
 	docker compose exec emulator bash
+
+emu-open:
+	@echo "noVNC: http://localhost:6080"
+
+pf-open:
+	@echo "PlayFlow: http://localhost:5000"
+
 
 adb-devices:
 	docker compose exec controller adb devices

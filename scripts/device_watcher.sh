@@ -2,6 +2,7 @@
 set -euo pipefail
 
 CFG="/opt/dcluster/templates/device_config.yaml"
+warned_no_devices=0
 
 # Ensure adb server is running
 adb start-server >/dev/null 2>&1 || true
@@ -30,18 +31,23 @@ connect_emulator() {
 }
 
 while true; do
-  # List physical devices
-  adb devices || true
+  current=$(adb devices 2>/dev/null | tail -n +2 | grep -v '^$' | wc -l || true)
+  echo "[watcher] loop: devices=${current}"
 
-  # Connect configured emulators
   if command -v yq >/dev/null 2>&1; then
     if ! yq -e '.devices' "$CFG" >/dev/null 2>&1; then
-      echo "[watcher] No devices in $CFG"
+      if (( ! warned_no_devices )); then
+        echo "[watcher] No devices in $CFG"
+        warned_no_devices=1
+      fi
     else
-      yq -r '.devices[]? | select(.type=="emulator") | "\(.host // \"droid_emulator\") \(.port // 5555)"' "$CFG" \
+      warned_no_devices=0
+      yq -r '.devices[]? | select(.type=="emulator") | "\(.host // "") \(.port // "")"' "$CFG" \
         | sort -u \
         | while read -r h p; do
-            [[ -n "$h" && -n "$p" ]] && connect_emulator "$h" "$p"
+            [[ -z "$h" ]] && h="droid_emulator"
+            [[ -z "$p" ]] && p=5555
+            connect_emulator "$h" "$p"
           done
     fi
   fi

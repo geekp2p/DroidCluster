@@ -2,6 +2,11 @@
 
 DroidCluster provides a Docker-only environment for controlling real and emulated Android devices. All services run inside containers on a single bridge network and communicate through a central ADB server hosted in the `controller` container.
 
+## Host requirements
+
+- **Linux**: required for USB pass-through of physical devices (`/dev/bus/usb` mounted into the controller).
+- **Windows/macOS**: only the emulator and PlayFlow can be used; physical device pass-through is not supported.
+
 ## Quickstart
 
 ```bash
@@ -33,6 +38,7 @@ services:
       - adb_keys:/root/.android
       - ./templates:/opt/dcluster/templates:ro
       - ./scripts:/opt/dcluster/scripts:ro
+    entrypoint: ["/bin/bash","-lc","/opt/dcluster/scripts/controller-entrypoint.sh"]
     healthcheck:
       test: ["CMD-SHELL","adb start-server >/dev/null 2>&1 && adb devices | grep -q 'List of devices'"]
       start_period: 180s
@@ -46,7 +52,7 @@ services:
       - "6080:6080"   # noVNC
       - "5555:5555"   # adbd
     healthcheck:
-      test: ["CMD-SHELL","nc -z localhost 5555 && nc -z localhost 6080"]
+      test: ["CMD-SHELL","bash -lc 'exec 3<>/dev/tcp/127.0.0.1/5555 && exec 3>&-; exec 3<&-; exit 0' && curl -fsS http://127.0.0.1:6080 >/dev/null"]
       start_period: 180s
       interval: 15s
       timeout: 10s
@@ -72,12 +78,7 @@ services:
       retries: 12
 ```
 
-All services join the `droidnet` bridge network. The controller hosts the ADB server used by the emulator and PlayFlow service.
-
-## Device Configuration
-
-Devices are declared in `templates/device_config.yaml`:
-
+@@ -81,55 +87,73 @@ Devices are declared in `templates/device_config.yaml`:
 ```yaml
 devices:
   - name: real_device_1
@@ -103,12 +104,30 @@ Health checks (180s start period, 15s interval, 10s timeout, 12 retries):
 - Emulator: ports 5555 and 6080 respond
 - PlayFlow: `curl http://localhost:5000/health` returns 200
 
+### Example health output
+
+```bash
+$ make health
+droid_controller: healthy
+droid_emulator: healthy
+droid_playflow: healthy
+```
+
+Short log snippet:
+
+```text
+controller  | [watcher] loop: devices=1
+```
+
 ## Useful Make Targets
 
 - `make up` / `make down` – start or stop the stack
 - `make logs` – follow logs for all services
-- `make sh-controller`, `make sh-emulator`, `make sh-playflow` – open a shell
-- `make pf-shell` – alias for `sh-playflow`
+- `make sh-controller`, `make ctrl-shell` – open a shell in the controller
+- `make sh-emulator` – open a shell in the emulator
+- `make sh-playflow`, `make pf-shell` – open a shell in the PlayFlow container
+- `make emu-open` – print the noVNC URL
+- `make pf-open` – print the PlayFlow URL
 - `make adb-devices` – run `adb devices` via the controller
 - `make adb-killstart` – restart the ADB server in the controller
 - `make emu-connect` – force ADB connect to the emulator
