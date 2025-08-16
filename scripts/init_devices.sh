@@ -1,5 +1,5 @@
-#!/bin/bash
-set -e
+#!/usr/bin/env bash
+set -euo pipefail
 
-# List attached Android devices and emulators
-adb devices
+# List devices via controller container
+docker compose exec controller adb devices

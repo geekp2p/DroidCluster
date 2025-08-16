@@ -21,22 +21,6 @@ services:
       - adb_keys:/root/.android
       - ./templates:/opt/dcluster/templates:ro
       - ./scripts:/opt/dcluster/scripts:ro
-    entrypoint: ["/bin/bash","-lc"]
-    command: |
-      set -e
-      # 1) udev rules (สำหรับอุปกรณ์จริง)
-      if ! dpkg -s android-udev-rules >/dev/null 2>&1; then
-        apt-get update && apt-get install -y android-udev-rules udev
-      fi
-      service udev restart || true
-
-      # 2) เริ่ม ADB server ใน container
-      adb kill-server || true
-      adb start-server
-
-      # 3) ตัวเชื่อมต่ออัตโนมัติ
-      chmod +x /opt/dcluster/scripts/device_watcher.sh
-      exec /opt/dcluster/scripts/device_watcher.sh
     healthcheck:
       test: ["CMD-SHELL","adb start-server >/dev/null 2>&1 && adb devices | grep -q 'List of devices'"]
       interval: 10s
@@ -53,19 +37,16 @@ services:
       - EMULATOR_PARAMS=-noaudio -gpu swiftshader_indirect
       - APPIUM=false
       - CONNECT_TO_GRID=false
-      # เปิด adbd บน 5555 อยู่แล้วโดย image นี้
     ports:
-      # เปิดไว้เฉพาะถ้าต้องการเข้าจาก host/LAN
       - "6080:6080"   # noVNC
-      - "5555:5555"   # adbd (ถ้าจะให้ภายนอกเข้า)
+      - "5555:5555"   # adbd
     healthcheck:
-      test: ["CMD-SHELL","nc -z localhost 5555 || exit 1"]
+      test: ["CMD-SHELL","nc -z localhost 5555 && nc -z localhost 6080"]
       interval: 15s
       timeout: 5s
       retries: 20
 
   playflow:
-    # นำโค้ดจาก repo PlayFlow มา build เป็น image ของคุณเอง
     build:
       context: ./playflow
       dockerfile: Dockerfile
@@ -75,13 +56,10 @@ services:
       controller:
         condition: service_healthy
     environment:
-      # ใช้ ADB server ของ controller
       - ADB_SERVER_SOCKET=tcp:controller:5037
-      # config ภายใน
       - DEVICE_SERIAL=
     volumes:
       - playflow_data:/var/lib/playflow
-    # ถ้าต้องการ web ui:
     ports:
       - "5000:5000"
     healthcheck:

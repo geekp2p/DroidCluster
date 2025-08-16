@@ -12,6 +12,18 @@ ps:
 logs:
 	docker compose logs -f --tail=200
 
+compose-config:
+	docker compose config
+
+pf-build:
+	docker compose build playflow
+
+ctrl-logs:
+	docker compose logs -f controller
+
+emu-logs:
+	docker compose logs -f emulator
+
 sh-controller:
 	docker compose exec controller bash
 
@@ -32,3 +44,6 @@ pf-logs:
 
 pf-restart:
 	docker compose restart playflow
+
+health:
+	docker compose ps --format 'table {{.Name}}\t{{.State}}'

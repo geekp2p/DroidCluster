@@ -1,6 +1,6 @@
 # DroidCluster
 
-**DroidCluster** provides a Docker-only environment for controlling real and emulated Android devices.  All services run inside containers on a single bridge network and communicate through a central ADB server hosted in the `controller` container.
+**DroidCluster** provides a Docker-only environment for controlling real and emulated Android devices. All services run inside containers on a single bridge network and communicate through a central ADB server hosted in the `controller` container.
 
 ## Quickstart
 
@@ -17,22 +17,26 @@ make adb-devices
 
 To stop the stack use `make down`.
 
-## Services
+## Compose Overview
 
-| Service     | Ports        | Purpose                                         |
-|-------------|--------------|-------------------------------------------------|
-| controller  | –            | Central ADB server and device watcher           |
-| emulator    | 6080 (VNC)   | Android emulator with `adbd` on TCP 5555        |
-| playflow    | 5000         | Simple web UI using the controller's ADB server |
+A minimal `docker-compose.yml` looks like:
 
-All services are attached to the same bridge network `droidnet`.  Two named volumes are used:
+```yaml
+version: "3.9"
+services:
+  controller:
+    build: .
+  emulator:
+    image: budtmo/docker-android-x86-13.0
+  playflow:
+    build: ./playflow
+```
 
-- `adb_keys` – stores adb keypairs for reconnecting devices
-- `playflow_data` – persistent data for the PlayFlow service
+All services join the `droidnet` bridge network. The controller exposes the ADB server used by the emulator and PlayFlow service.
 
 ## Device Configuration
 
-Devices are declared in `templates/device_config.yaml`.
+Devices are declared in `templates/device_config.yaml`:
 
 ```yaml
 devices:
@@ -56,15 +60,26 @@ The watcher script inside the controller uses `yq` to read this file and will au
 - `make emu-connect` – force ADB connect to the emulator
 - `make pf-logs` – follow only PlayFlow logs
 - `make pf-restart` – restart the PlayFlow service
+- `make compose-config` – validate compose file
+- `make health` – show container health state
 
 ## Health Checks
 
-- Controller: `adb devices` responds (used by Docker healthcheck)
-- Emulator: TCP port 5555 and noVNC on 6080
+- Controller: `adb devices` responds (Docker healthcheck)
+- Emulator: TCP ports 5555 and 6080 respond
 - PlayFlow: `curl http://localhost:5000/health` returns HTTP 200
 
-## Troubleshooting
+## Troubleshooting ADB
 
 - **USB device not detected** – ensure the host passes `/dev/bus/usb` into the controller and that `android-udev-rules` are installed.
-- **ADB cannot connect** – verify the controller container is healthy and that `ADB_SERVER_SOCKET` is set to `tcp:controller:5037` for clients.
-- **PlayFlow not responding** – check logs with `make pf-logs` and restart using `make pf-restart`.
+- **ADB keys rejected** – remove the `adb_keys` volume to regenerate keys, then reconnect the device.
+- **Permissions** – check that your user has rights to access the USB device; udev rules may need adjustment.
+- **Cannot reach ADB server** – verify `ADB_SERVER_SOCKET=tcp:controller:5037` for clients.
+
+## Acceptance / Test Plan
+
+1. `docker compose up -d --build` – all services become healthy (`make health`).
+2. `make adb-devices` shows the configured emulator and any physical devices.
+3. `curl http://localhost:5000/health` returns `200`.
+4. Plugging or unplugging a device changes the output of `make adb-devices`.
+5. No host-side tools other than Docker and Compose are required.
