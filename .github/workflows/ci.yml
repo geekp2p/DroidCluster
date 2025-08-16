@@ -15,9 +15,25 @@ jobs:
         run: shellcheck scripts/*.sh
       - name: Python compile
         run: python -m py_compile playflow/*.py
-  compose:
+
+  stack:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Validate docker-compose
-        run: docker compose config
+      - name: Install Docker Engine and Compose
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io docker-compose-plugin
+      - uses: docker/setup-buildx-action@v3
+      - name: Verify installation
+        run: make doctor
+      - name: Validate compose file
+        run: make compose-config
+      - name: Build PlayFlow image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./playflow
+          tags: playflow:test
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

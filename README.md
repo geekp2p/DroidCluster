@@ -1,63 +1,3 @@
-# DroidCluster
-[![CI](https://github.com/geekp2p/DroidCluster/actions/workflows/ci.yml/badge.svg)](https://github.com/geekp2p/DroidCluster/actions/workflows/ci.yml)
-
-DroidCluster provides a Docker-only environment for controlling real and emulated Android devices. All services run inside containers on a single bridge network and communicate through a central ADB server hosted in the `controller` container.
-
-## Host requirements
-
-- **Linux**: required for USB pass-through of physical devices (`/dev/bus/usb` mounted into the controller).
-- **Windows/macOS**: only the emulator and PlayFlow can be used; physical device pass-through is not supported.
-
-### Install Docker Engine (Linux/WSL)
-
-```bash
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker $USER
-# restart shell after adding group
-```
-
-### Install Docker Compose Plugin
-
-```bash
-sudo apt-get update
-sudo apt-get install docker-compose-plugin
-```
-
-On Windows (WSL) run the same commands inside the Linux environment. For other platforms see the official Docker documentation for installing the Compose plugin.
-
-## Quickstart
-
-```bash
-# one-time onboarding helper
-make onboard
-
-# build and start all services
-make up
-
-# show running containers
-make ps
-
-# list devices seen by the controller's ADB server
-make adb-devices
-```
-
-Stop the stack with `make down`.
-
-### Profiles
-
-- **Linux with USB devices**
-
-  ```bash
-  docker compose --profile usb --profile emulator up -d
-  ```
-
-- **Windows/macOS/WSL** (emulator only)
-
-  ```bash
-  docker compose --profile emulator up -d
-  ```
-
-
 ## First run checklist
 
 1. `make compose-config`
@@ -82,66 +22,7 @@ services:
     environment:
       - ADB_SERVER_SOCKET=tcp:5037
     volumes:
-      - /dev/bus/usb:/dev/bus/usb
-      - adb_keys:/root/.android
-      - ./templates:/opt/dcluster/templates:ro
-      - ./scripts:/opt/dcluster/scripts:ro
-    entrypoint: ["/bin/bash","-lc","/opt/dcluster/scripts/controller-entrypoint.sh"]
-    healthcheck:
-      test: ["CMD-SHELL","adb start-server >/dev/null 2>&1 && adb devices | grep -q 'List of devices'"]
-      start_period: 180s
-      interval: 15s
-      timeout: 10s
-      retries: 12
-
-  emulator:
-    image: budtmo/docker-android-x86-13.0
-    ports:
-      - "6080:6080"   # noVNC
-      - "5555:5555"   # adbd
-    healthcheck:
-      test: ["CMD-SHELL","bash -lc 'exec 3<>/dev/tcp/127.0.0.1/5555 && exec 3>&-; exec 3<&-; exit 0' && curl -fsS http://127.0.0.1:6080 >/dev/null"]
-      start_period: 180s
-      interval: 15s
-      timeout: 10s
-      retries: 12
-
-  playflow:
-    build: ./playflow
-    depends_on:
-      controller:
-        condition: service_healthy
-    environment:
-      - ADB_SERVER_SOCKET=tcp:controller:5037
-      - DEVICE_SERIAL=
-    volumes:
-      - playflow_data:/var/lib/playflow
-    ports:
-      - "5000:5000"
-    healthcheck:
-      test: ["CMD-SHELL","curl -fsS http://localhost:5000/health || exit 1"]
-      start_period: 180s
-      interval: 15s
-      timeout: 10s
-      retries: 12
-```
-
-Devices are declared in `templates/device_config.yaml`:
-```yaml
-devices:
-  - name: real_device_1
-    type: physical
-    serial: usb
-  - name: emulator_1
-    type: emulator
-    host: droid_emulator
-    port: 5555
-```
-
-The watcher script inside the controller uses `yq` to read this file and connects to configured emulators while reporting physical devices.
-
-## Ports and Health
-
+read this file and connect
 - **Emulator**: noVNC `6080`, ADB `5555`
 - **PlayFlow**: HTTP `5000`
 - **Controller**: no host ports exposed (ADB used internally)
@@ -167,6 +48,12 @@ Short log snippet:
 controller  | [watcher] devices=1
 ```
 
+For detailed health information, inspect the container directly:
+
+```bash
+docker inspect -f '{{.State.Health.Status}}' droid_controller
+```
+
 ## Useful Make Targets
 
 - `make up` / `make down` – start or stop the stack
@@ -175,6 +62,7 @@ controller  | [watcher] devices=1
 - `make sh-controller`, `make ctrl-shell` – open a shell in the controller
 - `make sh-emulator` – open a shell in the emulator
 - `make sh-playflow`, `make pf-shell` – open a shell in the PlayFlow container
+- `make emu-shell` – alias for opening a shell in the emulator
 - `make emu-open` – print the noVNC URL
 - `make pf-open` – print the PlayFlow URL
 - `make adb-devices` – run `adb devices` via the controller
@@ -185,8 +73,16 @@ controller  | [watcher] devices=1
 - `make compose-config` – validate compose file
 - `make health` – show container health state
 - `make clean-volumes` – remove `adb_keys` and `playflow_data` volumes
+- `make rebuild` – stop containers and rebuild the stack
+- `make clean` – remove containers, images, and volumes
 - `make restart` – restart all services
 - `make doctor` – check for required Docker components
+
+## Troubleshooting USB
+
+- Use `dmesg` to inspect kernel messages when plugging in a device.
+- `lsusb` lists detected USB devices on the host.
+- `adb devices` verifies the controller can see the hardware.
 
 ## Troubleshooting ADB
 

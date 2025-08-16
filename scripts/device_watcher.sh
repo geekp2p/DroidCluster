@@ -5,11 +5,17 @@ CFG="/opt/dcluster/templates/device_config.yaml"
 warned_no_devices=0
 declare -A suppress_until
 last_count=-1
+VERBOSE=${WATCHER_VERBOSE:-0}
+METRICS=${WATCHER_METRICS:-0}
+
+logv() {
+  [[ "$VERBOSE" == "1" ]] && echo "$*"
+}
 
 # Ensure adb server is running
 adb start-server >/dev/null 2>&1 || true
 
-echo "[watcher] Using config: $CFG"
+logv "[watcher] Using config: $CFG"
 if [[ ! -f "$CFG" ]]; then
   echo "[watcher] Config not found, sleeping..."
   sleep 3600
@@ -21,25 +27,29 @@ connect_emulator() {
   local delay=2
   local max_delay=30
   for attempt in 1 2 3; do
-    echo "[watcher] adb connect ${host}:${port} (attempt ${attempt})"
+    logv "[watcher][emu] adb connect ${host}:${port} (attempt ${attempt})"
     if adb connect "${host}:${port}" >/dev/null 2>&1; then
-      echo "[watcher] connected ${host}:${port}"
+      echo "[watcher][emu] connected ${host}:${port}"
       return 0
     fi
-    echo "[watcher] connect failed, retrying in ${delay}s"
+    logv "[watcher][emu] connect failed, retrying in ${delay}s"
     sleep $delay
     delay=$((delay*2))
     if (( delay > max_delay )); then delay=$max_delay; fi
   done
-  echo "[watcher] failed to connect ${host}:${port}"
+  echo "[watcher][emu] failed to connect ${host}:${port}"
   return 1
 }
 
 while true; do
-  current=$(adb devices 2>/dev/null | tail -n +2 | grep -v '^$' | wc -l || true)
+  now=$(date +%s)
+  current=$(adb devices 2>/dev/null | tail -n +2 | grep -vc '^$' || true)
   if [[ "$current" != "$last_count" ]]; then
     echo "[watcher] devices=${current}"
     last_count="$current"
+  fi
+  if [[ "$METRICS" == "1" ]]; then
+    echo "[watcher][metrics] {\"timestamp\":$now,\"devices\":$current}"
   fi
 
   if command -v yq >/dev/null 2>&1; then
@@ -69,6 +79,7 @@ while true; do
       yq -r '.devices[]? | select(.type=="physical") | .serial // ""' "$CFG" \
         | while read -r serial; do
             [[ -z "$serial" ]] && continue
+            logv "[watcher][phy] wait-for-device $serial"
             adb -s "$serial" wait-for-device >/dev/null 2>&1 || true
           done
     fi

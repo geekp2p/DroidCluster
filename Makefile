@@ -41,6 +41,8 @@ pf-shell: sh-playflow
 sh-emulator:
 	docker compose exec emulator bash
 
+emu-shell: sh-emulator	
+
 emu-open:
 	@echo "noVNC: http://localhost:6080"
 
@@ -90,3 +92,10 @@ onboard:
 
 restart:
 	docker compose restart
+
+rebuild:
+	docker compose down
+	docker compose up -d --build
+
+clean:
+	docker compose down -v --rmi all --remove-orphans

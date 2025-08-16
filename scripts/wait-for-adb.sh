@@ -2,7 +2,7 @@
 set -euo pipefail
 host="${1:-127.0.0.1}"
 port="${2:-5037}"
-for i in {1..30}; do
+for _ in {1..30}; do
   if nc -z "$host" "$port" >/dev/null 2>&1; then
     exit 0
   fi

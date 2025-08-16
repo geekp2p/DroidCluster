@@ -81,6 +81,9 @@ services:
       - playflow_data:/var/lib/playflow
     ports:
       - "${PLAYFLOW_PORT:-5000}:5000"
+    read_only: true
+    tmpfs:
+      - /tmp
     logging:
       driver: json-file
       options:
@@ -92,3 +95,21 @@ services:
       interval: 15s
       timeout: 10s
       retries: 12
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: droid_cadvisor
+    profiles: [observability]
+    networks: [droidnet]
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
