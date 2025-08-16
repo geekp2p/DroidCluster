@@ -1,0 +1,11 @@
+# Template device configuration
+# Define devices to be managed by DroidCluster
+
+devices:
+  - name: real_device_1
+    type: physical
+    serial: usb
+  - name: emulator_1
+    type: emulator
+    host: droid_emulator
+    port: 5555

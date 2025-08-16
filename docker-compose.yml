@@ -1,0 +1,20 @@
+version: '3.9'
+
+services:
+  controller:
+    build: .
+    container_name: droid_controller
+    privileged: true
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+    command: bash
+
+  emulator:
+    image: budtmo/docker-android-x86-13.0
+    container_name: droid_emulator
+    privileged: true
+    ports:
+      - "6080:6080"
+      - "5555:5555"
+    environment:
+      - DEVICE=Samsung Galaxy S10
