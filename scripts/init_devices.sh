@@ -2,4 +2,4 @@
 set -euo pipefail
 
 # List devices via controller container
-docker compose exec controller adb devices
+docker compose exec controller adb devices -l

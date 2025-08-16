@@ -74,3 +74,12 @@ health:
 	  status=$$(docker inspect -f '{{.State.Health.Status}}' $$c 2>/dev/null || echo "missing"); \
 	  echo "$$c: $$status"; \
 	done
+
+doctor:
+	@echo "docker:"
+	@docker --version || { echo "  missing docker"; exit 1; }
+	@echo "docker compose:"
+	@docker compose version || { echo "  missing Docker Compose plugin"; echo "  install with: sudo apt-get install docker-compose-plugin"; exit 1; }
+
+restart:
+	docker compose restart

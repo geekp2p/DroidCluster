@@ -7,6 +7,15 @@ DroidCluster provides a Docker-only environment for controlling real and emulate
 - **Linux**: required for USB pass-through of physical devices (`/dev/bus/usb` mounted into the controller).
 - **Windows/macOS**: only the emulator and PlayFlow can be used; physical device pass-through is not supported.
 
+### Install Docker Compose Plugin
+
+```bash
+sudo apt-get update
+sudo apt-get install docker-compose-plugin
+```
+
+On Windows (WSL) run the same commands inside the Linux environment. For other platforms see the official Docker documentation for installing the Compose plugin.
+
 ## Quickstart
 
 ```bash
@@ -21,6 +30,15 @@ make adb-devices
 ```
 
 Stop the stack with `make down`.
+
+## First run checklist
+
+1. `make compose-config`
+2. `make up`
+3. `make health`
+4. `make adb-devices`
+5. `make emu-open` / `make pf-open`
+
 
 ## Compose Overview
 
@@ -78,7 +96,7 @@ services:
       retries: 12
 ```
 
-@@ -81,55 +87,73 @@ Devices are declared in `templates/device_config.yaml`:
+Devices are declared in `templates/device_config.yaml`:
 ```yaml
 devices:
   - name: real_device_1
@@ -116,7 +134,7 @@ droid_playflow: healthy
 Short log snippet:
 
 ```text
-controller  | [watcher] loop: devices=1
+controller  | [watcher] devices=1
 ```
 
 ## Useful Make Targets
@@ -136,6 +154,8 @@ controller  | [watcher] loop: devices=1
 - `make compose-config` – validate compose file
 - `make health` – show container health state
 - `make clean-volumes` – remove `adb_keys` and `playflow_data` volumes
+- `make restart` – restart all services
+- `make doctor` – check for required Docker components
 
 ## Troubleshooting ADB
 

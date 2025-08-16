@@ -3,6 +3,8 @@ set -euo pipefail
 
 CFG="/opt/dcluster/templates/device_config.yaml"
 warned_no_devices=0
+declare -A suppress
+last_count=-1
 
 # Ensure adb server is running
 adb start-server >/dev/null 2>&1 || true
@@ -32,7 +34,10 @@ connect_emulator() {
 
 while true; do
   current=$(adb devices 2>/dev/null | tail -n +2 | grep -v '^$' | wc -l || true)
-  echo "[watcher] loop: devices=${current}"
+  if [[ "$current" != "$last_count" ]]; then
+    echo "[watcher] devices=${current}"
+    last_count="$current"
+  fi
 
   if command -v yq >/dev/null 2>&1; then
     if ! yq -e '.devices' "$CFG" >/dev/null 2>&1; then
@@ -47,7 +52,14 @@ while true; do
         | while read -r h p; do
             [[ -z "$h" ]] && h="droid_emulator"
             [[ -z "$p" ]] && p=5555
-            connect_emulator "$h" "$p"
+            key="${h}:${p}"
+            if [[ ${suppress[$key]:-0} -gt 0 ]]; then
+              suppress[$key]=$((suppress[$key]-1))
+              continue
+            fi
+            if connect_emulator "$h" "$p"; then
+              suppress[$key]=3
+            fi
           done
     fi
   fi

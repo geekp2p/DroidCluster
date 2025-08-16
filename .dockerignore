@@ -1,7 +1,8 @@
 *.pyc
-__pycache__/
+**/__pycache__/
 .git
 .venv/
+playflow/.venv/
 logs/
 dist/
 *.log
