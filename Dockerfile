@@ -21,4 +21,6 @@ COPY scripts/ /opt/dcluster/scripts/
 COPY templates/ /opt/dcluster/templates/
 RUN chmod +x /opt/dcluster/scripts/*.sh
 
+HEALTHCHECK --interval=15s --timeout=10s --start-period=180s --retries=12 CMD adb start-server >/dev/null 2>&1 && adb devices | grep -q 'List of devices'
+
 ENTRYPOINT ["/opt/dcluster/scripts/controller-entrypoint.sh"]

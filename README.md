@@ -1,4 +1,5 @@
 # DroidCluster
+[![CI](https://github.com/geekp2p/DroidCluster/actions/workflows/ci.yml/badge.svg)](https://github.com/geekp2p/DroidCluster/actions/workflows/ci.yml)
 
 DroidCluster provides a Docker-only environment for controlling real and emulated Android devices. All services run inside containers on a single bridge network and communicate through a central ADB server hosted in the `controller` container.
 
@@ -6,6 +7,14 @@ DroidCluster provides a Docker-only environment for controlling real and emulate
 
 - **Linux**: required for USB pass-through of physical devices (`/dev/bus/usb` mounted into the controller).
 - **Windows/macOS**: only the emulator and PlayFlow can be used; physical device pass-through is not supported.
+
+### Install Docker Engine (Linux/WSL)
+
+```bash
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER
+# restart shell after adding group
+```
 
 ### Install Docker Compose Plugin
 
@@ -19,6 +28,9 @@ On Windows (WSL) run the same commands inside the Linux environment. For other p
 ## Quickstart
 
 ```bash
+# one-time onboarding helper
+make onboard
+
 # build and start all services
 make up
 
@@ -31,6 +43,21 @@ make adb-devices
 
 Stop the stack with `make down`.
 
+### Profiles
+
+- **Linux with USB devices**
+
+  ```bash
+  docker compose --profile usb --profile emulator up -d
+  ```
+
+- **Windows/macOS/WSL** (emulator only)
+
+  ```bash
+  docker compose --profile emulator up -d
+  ```
+
+
 ## First run checklist
 
 1. `make compose-config`
@@ -39,6 +66,9 @@ Stop the stack with `make down`.
 4. `make adb-devices`
 5. `make emu-open` / `make pf-open`
 
+## Configuration
+
+The stack loads variables from a `.env` file in the project root. See `.env.example` for options such as `DEVICE`, `EMULATOR_PARAMS`, `PLAYFLOW_PORT`, and `DEVICE_SERIAL`.
 
 ## Compose Overview
 
@@ -112,9 +142,9 @@ The watcher script inside the controller uses `yq` to read this file and connect
 
 ## Ports and Health
 
-- noVNC: http://localhost:6080
-- ADB: localhost:5555
-- PlayFlow: http://localhost:5000
+- **Emulator**: noVNC `6080`, ADB `5555`
+- **PlayFlow**: HTTP `5000`
+- **Controller**: no host ports exposed (ADB used internally)
 
 Health checks (180s start period, 15s interval, 10s timeout, 12 retries):
 
@@ -141,6 +171,7 @@ controller  | [watcher] devices=1
 
 - `make up` / `make down` – start or stop the stack
 - `make logs` – follow logs for all services
+- `make logs-controller` / `make logs-emulator` / `make logs-playflow` – follow logs for a single service
 - `make sh-controller`, `make ctrl-shell` – open a shell in the controller
 - `make sh-emulator` – open a shell in the emulator
 - `make sh-playflow`, `make pf-shell` – open a shell in the PlayFlow container

@@ -12,17 +12,20 @@ ps:
 logs:
 	docker compose logs -f --tail=200
 
+logs-controller:
+	docker compose logs -f controller
+
+logs-emulator:
+	docker compose logs -f emulator
+
+logs-playflow:
+	docker compose logs -f playflow
+
 compose-config:
 	docker compose config
 
 pf-build:
 	docker compose build playflow
-
-ctrl-logs:
-	docker compose logs -f controller
-
-emu-logs:
-	docker compose logs -f emulator
 
 sh-controller:
 	docker compose exec controller bash
@@ -54,25 +57,22 @@ adb-killstart:
 emu-connect:
 	docker compose exec controller adb connect droid_emulator:5555
 
-pf-logs:
-	docker compose logs -f playflow
-
 pf-restart:
 	docker compose restart playflow
 
 clean-volumes:
 	@read -p "Remove volumes adb_keys and playflow_data? [y/N] " ans; \
-	 if [[ $$ans =~ ^[Yy]$ ]]; then \
-	   project=$$(basename "$$(pwd)" | tr '[:upper:]' '[:lower:]'); \
-	   docker volume rm -f $${project}_adb_keys $${project}_playflow_data 2>/dev/null || true; \
-	 else \
-	   echo "skipping"; \
-	 fi
+	if [[ $$ans =~ ^[Yy]$ ]]; then \
+	project=$$(basename "$$PWD" | tr '[:upper:]' '[:lower:]'); \
+	docker volume rm -f $${project}_adb_keys $${project}_playflow_data 2>/dev/null || true; \
+	else \
+	echo "skipping"; \
+	fi
 
 health:
 	@for c in droid_controller droid_emulator droid_playflow; do \
-	  status=$$(docker inspect -f '{{.State.Health.Status}}' $$c 2>/dev/null || echo "missing"); \
-	  echo "$$c: $$status"; \
+	status=$$(docker inspect -f '{{.State.Health.Status}}' $$c 2>/dev/null || echo "missing"); \
+	echo "$$c: $$status"; \
 	done
 
 doctor:
@@ -80,6 +80,13 @@ doctor:
 	@docker --version || { echo "  missing docker"; exit 1; }
 	@echo "docker compose:"
 	@docker compose version || { echo "  missing Docker Compose plugin"; echo "  install with: sudo apt-get install docker-compose-plugin"; exit 1; }
+	@echo "docker ps:"
+	@docker ps >/dev/null || { echo "  cannot run docker ps (check permissions)"; exit 1; }
+
+onboard:
+	@echo "Install Docker Engine and ensure your user is in the docker group (Linux)."
+	@echo "After installation, restart your shell."
+	@$(MAKE) doctor
 
 restart:
 	docker compose restart
