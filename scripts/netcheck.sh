@@ -13,4 +13,5 @@ for t in "${TARGETS[@]}"; do
   fi
   getent hosts "$t" || true
   echo
+
 done

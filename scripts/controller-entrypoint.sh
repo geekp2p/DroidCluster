@@ -8,12 +8,12 @@ echo "[entrypoint] Starting ADB server on ${ADB_SERVER_SOCKET}"
 adb kill-server || true
 adb start-server
 
-# Reload udev rules so USB devices are detected
+echo "[entrypoint] Reloading udev rules"
 if command -v service >/dev/null 2>&1; then
   service udev restart || true
 else
   udevadm control --reload-rules || true
 fi
 
-# Run the device watcher as PID 1
+echo "[entrypoint] Launching device watcher"
 exec /opt/dcluster/scripts/device_watcher.sh

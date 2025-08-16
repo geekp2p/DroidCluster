@@ -30,11 +30,16 @@ sh-controller:
 sh-playflow:
 	docker compose exec playflow bash
 
+pf-shell: sh-playflow
+
 sh-emulator:
 	docker compose exec emulator bash
 
 adb-devices:
 	docker compose exec controller adb devices
+
+adb-killstart:
+	docker compose exec controller bash -lc 'adb kill-server || true; adb start-server'
 
 emu-connect:
 	docker compose exec controller adb connect droid_emulator:5555
@@ -45,5 +50,17 @@ pf-logs:
 pf-restart:
 	docker compose restart playflow
 
+clean-volumes:
+	@read -p "Remove volumes adb_keys and playflow_data? [y/N] " ans; \
+	 if [[ $$ans =~ ^[Yy]$ ]]; then \
+	   project=$$(basename "$$(pwd)" | tr '[:upper:]' '[:lower:]'); \
+	   docker volume rm -f $${project}_adb_keys $${project}_playflow_data 2>/dev/null || true; \
+	 else \
+	   echo "skipping"; \
+	 fi
+
 health:
-	docker compose ps --format 'table {{.Name}}\t{{.State}}'
+	@for c in droid_controller droid_emulator droid_playflow; do \
+	  status=$$(docker inspect -f '{{.State.Health.Status}}' $$c 2>/dev/null || echo "missing"); \
+	  echo "$$c: $$status"; \
+	done

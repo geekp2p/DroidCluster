@@ -15,8 +15,18 @@ fi
 connect_emulator() {
   local host="${1:-droid_emulator}"
   local port="${2:-5555}"
-  echo "[watcher] adb connect ${host}:${port}"
-  adb connect "${host}:${port}" || true
+  local delay=2
+  for attempt in 1 2 3; do
+    echo "[watcher] adb connect ${host}:${port} (attempt ${attempt})"
+    if adb connect "${host}:${port}" >/dev/null 2>&1; then
+      echo "[watcher] connected ${host}:${port}"
+      return 0
+    fi
+    echo "[watcher] connect failed, retrying in ${delay}s"
+    sleep $delay
+    delay=$((delay*2))
+  done
+  echo "[watcher] failed to connect ${host}:${port}"
 }
 
 while true; do
@@ -25,12 +35,16 @@ while true; do
 
   # Connect configured emulators
   if command -v yq >/dev/null 2>&1; then
-    yq -r '.devices[]? | select(.type=="emulator") | "\(.host // \"droid_emulator\") \(.port // 5555)"' "$CFG" \
-      | while read -r h p; do
-          [[ -n "$h" && -n "$p" ]] && connect_emulator "$h" "$p"
-        done
+    if ! yq -e '.devices' "$CFG" >/dev/null 2>&1; then
+      echo "[watcher] No devices in $CFG"
+    else
+      yq -r '.devices[]? | select(.type=="emulator") | "\(.host // \"droid_emulator\") \(.port // 5555)"' "$CFG" \
+        | sort -u \
+        | while read -r h p; do
+            [[ -n "$h" && -n "$p" ]] && connect_emulator "$h" "$p"
+          done
+    fi
   fi
 
   sleep 5
-
 done
