@@ -22,7 +22,8 @@ services:
     environment:
       - ADB_SERVER_SOCKET=tcp:5037
     volumes:
-read this file and connect
+```
+
 - **Emulator**: noVNC `6080`, ADB `5555`
 - **PlayFlow**: HTTP `5000`
 - **Controller**: no host ports exposed (ADB used internally)
@@ -54,6 +55,27 @@ For detailed health information, inspect the container directly:
 docker inspect -f '{{.State.Health.Status}}' droid_controller
 ```
 
+## Profiles usage examples
+
+```bash
+# Emulator only
+make up --profile emulator
+
+# USB devices + emulator
+make up --profile usb --profile emulator
+
+# Enable metrics (cAdvisor)
+make up --profile emulator --profile observability
+```
+
+## Metrics & cadvisor
+
+When the `observability` profile is enabled, cAdvisor publishes metrics at [http://localhost:8080](http://localhost:8080). Run `make metrics` to print the URL.
+
+## Watcher flags
+
+Set `WATCHER_VERBOSE=1` for verbose watcher logs and `WATCHER_METRICS=1` to emit JSON metrics to stdout.
+
 ## Useful Make Targets
 
 - `make up` / `make down` – start or stop the stack
@@ -65,6 +87,8 @@ docker inspect -f '{{.State.Health.Status}}' droid_controller
 - `make emu-shell` – alias for opening a shell in the emulator
 - `make emu-open` – print the noVNC URL
 - `make pf-open` – print the PlayFlow URL
+- `make pf-build-cache` – build PlayFlow using local cache
+- `make metrics` – print the cAdvisor URL
 - `make adb-devices` – run `adb devices` via the controller
 - `make adb-killstart` – restart the ADB server in the controller
 - `make emu-connect` – force ADB connect to the emulator
@@ -77,12 +101,15 @@ docker inspect -f '{{.State.Health.Status}}' droid_controller
 - `make clean` – remove containers, images, and volumes
 - `make restart` – restart all services
 - `make doctor` – check for required Docker components
+- `make status` – show health status and exposed ports
 
 ## Troubleshooting USB
 
 - Use `dmesg` to inspect kernel messages when plugging in a device.
 - `lsusb` lists detected USB devices on the host.
 - `adb devices` verifies the controller can see the hardware.
+- `udevadm monitor` streams real-time udev events.
+- `scripts/setup-usb.sh --dry-run` shows rules before installing.
 
 ## Troubleshooting ADB
 
@@ -93,9 +120,9 @@ docker inspect -f '{{.State.Health.Status}}' droid_controller
 
 ## Acceptance / Test Plan
 
-1. `docker compose up -d --build` – all services become healthy (`make health`).
-2. `make adb-devices` shows the configured emulator and any physical devices.
-3. `curl http://localhost:5000/health` returns `200`.
-4. Plugging or unplugging a device changes the output of `make adb-devices`.
-5. noVNC available at `http://localhost:6080` and `adb connect localhost:5555` works.
-6. No host-side tools other than Docker and Compose are required.
+1. `make onboard` completes (Docker Engine and Compose installed).
+2. `make up --profile emulator` → containers become healthy (`make health`), `make pf-open` and `make emu-open` work.
+3. `make up --profile usb --profile emulator` on Linux → physical devices appear in `make adb-devices`.
+4. `make up --profile observability` → cAdvisor accessible at `http://localhost:8080`.
+5. Watcher logs show structured output when `WATCHER_VERBOSE=1` and metrics when `WATCHER_METRICS=1`.
+6. CI workflow runs lint, compose validation, and builds the PlayFlow image without errors.

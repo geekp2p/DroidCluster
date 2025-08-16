@@ -27,6 +27,11 @@ compose-config:
 pf-build:
 	docker compose build playflow
 
+pf-build-cache:
+	docker buildx build playflow --tag playflow:test --load \
+	        --cache-from type=local,src=.buildx-cache \
+	        --cache-to type=local,dest=.buildx-cache,mode=max
+
 sh-controller:
 	docker compose exec controller bash
 
@@ -49,6 +54,8 @@ emu-open:
 pf-open:
 	@echo "PlayFlow: http://localhost:5000"
 
+metrics:
+	@echo "cAdvisor: http://localhost:8080"
 
 adb-devices:
 	docker compose exec controller adb devices
@@ -76,6 +83,10 @@ health:
 	status=$$(docker inspect -f '{{.State.Health.Status}}' $$c 2>/dev/null || echo "missing"); \
 	echo "$$c: $$status"; \
 	done
+
+status:
+	@$(MAKE) -s health
+	@docker compose ps --format 'table {{.Name}}\t{{.State}}\t{{.Ports}}'
 
 doctor:
 	@echo "docker:"
