@@ -1,0 +1,68 @@
+git config --global user.name "geekp2p"
+git config --global user.email "geekp2p@gmail.com"
+
+
+git init
+git remote add origin https://github.com/geekp2p/DroidCluster.git
+git fetch origin
+; git checkout -b main origin/main
+
+
+git remote add origin https://github.com/geekp2p/DroidCluster.git
+
+
+git clone https://github.com/geekp2p/DroidCluster.git
+
+git pull origin main
+
+git remote -v
+
+git pull origin main
+git commit -m "Resolved merge conflicts"
+git push -u origin main
+
+
+git add .
+git commit -m "remove test"
+git push -u origin main
+
+git push -u origin main --force
+
+git add .
+git commit -m "alot update"
+git push -u origin main
+
+sudo apt-get install -y curl netcat-openbsd
+
+sudo apt install make
+
+make up
+
+
+docker exec -it pf_emulator  ip addr show eth0
+docker exec -it pf_droidflow ip addr show eth0
+
+# ขึ้นระบบ + โชว์ปลายทางที่เข้าถึงได้ (noVNC/VNC/ADB/Flask)
+make up
+
+# ดูปลายทางอีกรอบ (สคริปต์ tools/show-endpoints.sh)
+make ps
+
+# ดู log สด ๆ ของทุกคอนเทนเนอร์
+make logs
+
+# ปิดระบบ
+make down
+
+
+# Restart the adb server inside the emulator container
+docker exec pf_emulator adb kill-server
+docker exec pf_emulator adb start-server
+
+# Verify the emulator is listed as “device” (not “offline”)
+docker exec pf_emulator adb devices
+
+# Check the container health again
+docker inspect -f '{{.State.Health.Status}}' pf_emulator
+
+docker compose up -d --force-recreate
