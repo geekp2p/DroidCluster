@@ -19,13 +19,13 @@ curl http://localhost:5000/health
 docker compose exec pf_droidflow adb devices
 ```
 
-If you need a web view of the emulator screen, set `WEB_VNC=true` in `.env` and add a `6080` port mapping in `docker-compose.yml`.
+If you need a web view of the emulator screen, copy `.env.example` to `.env`, set `WEB_VNC=true` in it, and add a `6080` port mapping in `docker-compose.yml`.
 
 ## Use Real Device (Wi‑Fi or USB)
 
 ### Wi‑Fi ADB
 1. Enable wireless debugging on your phone and put it on the same network as the host.
-2. Create a `.env` file containing:
+2. Create a `.env` file (copy from `.env.example`) containing:
    ```env
    ANDROID_MODE=real
    DEVICE_SERIAL=PHONE_IP:5555
@@ -52,6 +52,8 @@ If you need a web view of the emulator screen, set `WEB_VNC=true` in `.env` and 
 - `make doctor` – quick health summary
 
 ## Configuration (.env)
+Copy `.env.example` to `.env` and adjust as needed.
+เราจะยัด env เข้าไปก่อน ทำให้ใช้งานได้ก่อน อย่าเอาออก
 Common knobs:
 
 ```env
