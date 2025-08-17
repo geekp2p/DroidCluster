@@ -8,6 +8,9 @@ services:
     image: halimqarroum/docker-android:api-33-playstore
     container_name: pf_emulator
     shm_size: "2g"
+    privileged: true
+    devices:
+      - "/dev/kvm:/dev/kvm"
     environment:
       - DEVICE=${DEVICE:-Pixel_6}
       - EMULATOR_PARAMS=${EMULATOR_PARAMS:--noaudio -gpu swiftshader_indirect}
