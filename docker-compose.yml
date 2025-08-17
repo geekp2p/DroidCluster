@@ -1,115 +1,47 @@
-version: '3.9'
-
-networks:
-  droidnet:
-    driver: bridge
+version: "3.8"
 
 volumes:
-  adb_keys:
   playflow_data:
 
 services:
-  controller:
-    build: .
-    container_name: droid_controller
-    profiles: [usb]
-    privileged: true
-    networks:
-      droidnet:
-        aliases: [controller]
+  pf_emulator:
+    image: halimqarroum/docker-android:api-33-playstore
+    container_name: pf_emulator
+    shm_size: "2g"
     environment:
-      - ADB_SERVER_SOCKET=${ADB_SERVER_SOCKET:-tcp:5037}
-    volumes:
-      - /dev/bus/usb:/dev/bus/usb
-      - adb_keys:/root/.android
-      - ./templates:/opt/dcluster/templates:ro
-      - ./templates/udev-rules.d:/etc/udev/rules.d:ro
-      - ./scripts:/opt/dcluster/scripts:ro
-    entrypoint: ["/bin/bash","-lc","/opt/dcluster/scripts/controller-entrypoint.sh"]
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
-    healthcheck:
-      test: ["CMD-SHELL","adb start-server >/dev/null 2>&1 && adb devices | grep -q 'List of devices'"]
-      start_period: 180s
-      interval: 15s
-      timeout: 10s
-      retries: 12
-
-  emulator:
-    image: budtmo/docker-android-x86-13.0
-    container_name: droid_emulator
-    privileged: true
-    profiles: [emulator]
-    networks: [droidnet]
-    environment:
-      - DEVICE=${DEVICE:-Samsung Galaxy S10}
+      - DEVICE=${DEVICE:-Pixel_6}
       - EMULATOR_PARAMS=${EMULATOR_PARAMS:--noaudio -gpu swiftshader_indirect}
-      - APPIUM=false
-      - CONNECT_TO_GRID=false
+      - WEB_VNC=true
     ports:
-      - "6080:6080"
-      - "5555:5555"
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - "${NOVNC_PORT:-6080}:6080"
     healthcheck:
-      test: ["CMD-SHELL","bash -lc 'exec 3<>/dev/tcp/127.0.0.1/5555 && exec 3>&-; exec 3<&-; exit 0' && curl -fsS http://127.0.0.1:6080 >/dev/null"]
+      test: ["CMD-SHELL", "curl -fsS http://localhost:6080 || exit 1"]
       start_period: 180s
       interval: 15s
       timeout: 10s
       retries: 12
 
-  playflow:
+  pf_droidflow:
     build:
       context: ./playflow
       dockerfile: Dockerfile
-    container_name: droid_playflow
-    profiles: [emulator]
-    networks: [droidnet]
-    depends_on:
-      controller:
-        condition: service_healthy
+    container_name: pf_droidflow
     environment:
-      - ADB_SERVER_SOCKET=${ADB_SERVER_SOCKET:-tcp:controller:5037}
+      - PLAYFLOW_PORT=${PLAYFLOW_PORT:-5000}
       - DEVICE_SERIAL=${DEVICE_SERIAL:-}
+      - UPSTREAM_ADB=pf_emulator:5555
     volumes:
       - playflow_data:/var/lib/playflow
     ports:
       - "${PLAYFLOW_PORT:-5000}:5000"
-    read_only: true
     tmpfs:
       - /tmp
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+    depends_on:
+      pf_emulator:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL","curl -fsS http://localhost:5000/health || exit 1"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/health"]
       start_period: 180s
       interval: 15s
       timeout: 10s
       retries: 12
-
-  cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
-    container_name: droid_cadvisor
-    profiles: [observability]
-    networks: [droidnet]
-    ports:
-      - "8080:8080"
-    volumes:
-      - /:/rootfs:ro
-      - /var/run:/var/run:ro
-      - /sys:/sys:ro
-      - /var/lib/docker/:/var/lib/docker:ro
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"

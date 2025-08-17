@@ -13,9 +13,9 @@ RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt
 
 COPY . .
-
-ENV ADB_SERVER_SOCKET="tcp:controller:5037"
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 5000
 
-CMD ["python", "app.py"]
+ENTRYPOINT ["/app/entrypoint.sh"]

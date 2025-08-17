@@ -99,3 +99,5 @@ make health
 make emu-open   # http://localhost:6080
 make pf-open    # http://localhost:5000
 
+
+docker compose --profile usb --profile emulator up -d --build
