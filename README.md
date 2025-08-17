@@ -12,6 +12,7 @@ make pf-open      # http://localhost:5000
 
 ## Configuration (.env)
 Use the `.env` file to adjust `DEVICE`, `EMULATOR_PARAMS`, `PLAYFLOW_PORT`, `NOVNC_PORT`, and `DEVICE_SERIAL` (leave empty for auto-detect).
+If `DEVICE_SERIAL` is left blank, PlayFlow automatically selects the first connected device—emulator or physical.
 
 ## Services
 - **pf_emulator**: noVNC `6080` (ADB `5555` exposed only inside the Docker network).

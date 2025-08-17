@@ -1,3 +1,8 @@
+from flask import Flask, jsonify
+import os
+import subprocess
+import adbutils
+
 app = Flask(__name__)
 
 
@@ -6,6 +11,20 @@ def _adb_devices():
     cmd = ["adb", "devices"]
     proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
     return proc.stdout
+
+
+def _detect_device_serial():
+    serial = os.getenv("DEVICE_SERIAL")
+    if serial:
+        return serial
+    try:
+        client = adbutils.AdbClient()
+        devices = client.device_list()
+        if devices:
+            return devices[0].serial
+    except Exception:
+        pass
+    return ""
 
 
 @app.route("/health")
@@ -19,7 +38,7 @@ def health():
 
 @app.route("/")
 def index():
-    return jsonify({"device": os.getenv("DEVICE_SERIAL", "")})
+    return jsonify({"device": _detect_device_serial()})
 
 
 if __name__ == "__main__":
