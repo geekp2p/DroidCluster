@@ -54,3 +54,10 @@ health:
 status:
 	@$(MAKE) -s health
 	@docker compose ps --format 'table {{.Name}}	{{.State}}	{{.Ports}}'
+
+ps:
+	docker compose ps
+
+doctor:
+	@$(MAKE) -s health
+	@docker compose ps

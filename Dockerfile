@@ -1,26 +1,22 @@
-FROM ubuntu:22.04
+# syntax=docker/dockerfile:1.4
+FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y \
     android-tools-adb \
-    openjdk-11-jdk \
-    wget unzip \
-    yq \
-    android-udev-rules \
-    udev \
     curl \
     netcat-openbsd \
-    jq \
     && rm -rf /var/lib/apt/lists/*
 
-ENV ANDROID_HOME=/opt/android-sdk
-RUN mkdir -p $ANDROID_HOME
+WORKDIR /app
 
-WORKDIR /opt/dcluster
+COPY playflow/requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -r requirements.txt
 
-COPY scripts/ /opt/dcluster/scripts/
-COPY templates/ /opt/dcluster/templates/
-RUN chmod +x /opt/dcluster/scripts/*.sh
+COPY playflow /app
+COPY scripts/bootstrap_emulator.sh /app/bootstrap_emulator.sh
+RUN chmod +x /app/bootstrap_emulator.sh
 
-HEALTHCHECK --interval=15s --timeout=10s --start-period=180s --retries=12 CMD adb start-server >/dev/null 2>&1 && adb devices | grep -q 'List of devices'
+EXPOSE 5000
 
-ENTRYPOINT ["/opt/dcluster/scripts/controller-entrypoint.sh"]
+ENTRYPOINT ["/app/bootstrap_emulator.sh"]

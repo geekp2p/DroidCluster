@@ -1,31 +1,64 @@
 # DroidCluster
 
-## Quick start (PlayFlow-style, Emulator API 33)
+DroidCluster bundles an Android emulator and the [PlayFlow](https://github.com/geekp2p/PlayFlow) UI so that a target device is always available for UI automation.
+
+## Use Emulator
+
 ```bash
 git clone https://github.com/geekp2p/DroidCluster.git
 cd DroidCluster
-docker compose up -d
-make health
-make emu-open     # http://localhost:6080
-make pf-open      # http://localhost:5000
+make up             # or: docker compose up -d
+make ps             # show container status
+curl http://localhost:5000/health
 ```
+
+- The PlayFlow UI is served on [http://localhost:5000](http://localhost:5000).
+- `adb devices` inside `pf_droidflow` should list an emulator after boot:
+
+```bash
+docker compose exec pf_droidflow adb devices
+```
+
+If you need a web view of the emulator screen, set `WEB_VNC=true` in `.env` and add a `6080` port mapping in `docker-compose.yml`.
+
+## Use Real Device (Wi‑Fi or USB)
+
+### Wi‑Fi ADB
+1. Enable wireless debugging on your phone and put it on the same network as the host.
+2. Create a `.env` file containing:
+   ```env
+   ANDROID_MODE=real
+   DEVICE_SERIAL=PHONE_IP:5555
+   ```
+3. Start PlayFlow:
+   ```bash
+   docker compose up -d pf_droidflow
+   docker compose exec pf_droidflow adb devices
+   ```
+   The phone should appear as a connected device.
+
+### USB (requires host ADB)
+1. Plug the device into the host and authorize ADB access.
+2. Expose the host ADB server to the container:
+   ```bash
+   ANDROID_MODE=real ADB_SERVER_SOCKET=tcp:host.docker.internal:5037 docker compose up -d pf_droidflow
+   ```
+3. Verify with `docker compose exec pf_droidflow adb devices`.
+
+## Make Targets
+- `make up` – start the stack
+- `make logs` – tail logs from all services
+- `make ps` – show container list
+- `make doctor` – quick health summary
 
 ## Configuration (.env)
-Use the `.env` file to adjust `DEVICE`, `EMULATOR_PARAMS`, `PLAYFLOW_PORT`, `NOVNC_PORT`, `WEB_VNC`, and `DEVICE_SERIAL` (leave empty for auto-detect).
-If `DEVICE_SERIAL` is left blank, PlayFlow automatically selects the first connected device—emulator or physical.
+Common knobs:
 
-## Services
-- **pf_emulator**: noVNC `6080` (ADB `5555` exposed only inside the Docker network).
-- **pf_droidflow**: HTTP `5000` (runs an ADB server and `adb connect pf_emulator:5555`).
-
-### Health output example
-```bash
-$ make health
-pf_emulator: healthy
-pf_droidflow: healthy
+```env
+ANDROID_MODE=emulator      # or: real
+EMULATOR_HOST=pf_emulator
+EMULATOR_PORT=5555
+PLAYFLOW_PORT=5000
+# DEVICE_SERIAL=192.168.0.10:5555  # for real device
+# WEB_VNC=true                     # enable noVNC on 6080
 ```
-
-## Troubleshooting
-- Port already in use → change `PLAYFLOW_PORT` or `NOVNC_PORT` in `.env`.
-- Healthcheck failing → `docker compose logs -f`.
-- ADB cannot find emulator → check `pf_droidflow` logs (it will `adb connect pf_emulator:5555` on start).
