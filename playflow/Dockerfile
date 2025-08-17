@@ -8,12 +8,14 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-COPY requirements.txt .
+# When building via docker-compose the build context is the repository
+# root, so paths in this Dockerfile must be qualified accordingly.
+COPY playflow/requirements.txt .
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip install -r requirements.txt
 
-COPY . .
-COPY entrypoint.sh /app/entrypoint.sh
+# Copy the Playflow application sources into the image.
+COPY playflow/ .
 RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 5000
