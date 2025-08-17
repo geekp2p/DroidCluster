@@ -85,3 +85,17 @@ git commit -m "merge local and remote history"
 git push -u origin main
 
 git push -u origin main --force
+
+
+cd ~/DroidCluster
+
+# สตาร์ท emulator-only ก่อน
+make up --profile emulator
+
+# ตรวจสอบว่า healthy หรือยัง
+make health
+
+# เปิด UI
+make emu-open   # http://localhost:6080
+make pf-open    # http://localhost:5000
+
