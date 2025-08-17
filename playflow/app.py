@@ -10,6 +10,8 @@ def _adb_devices():
     env = os.environ.copy()
     cmd = ["adb", "devices"]
     proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    if proc.returncode != 0:
+        raise RuntimeError(f"adb failed: {proc.stderr.strip()}")
     return proc.stdout
 
 
