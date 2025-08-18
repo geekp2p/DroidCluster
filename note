@@ -103,3 +103,7 @@ make pf-open    # http://localhost:5000
 docker compose --profile usb --profile emulator up -d --build
 
 docker compose exec pf_droidflow adb devices
+
+docker compose exec pf_droidflow adb kill-server
+docker compose exec pf_droidflow adb start-server
+docker compose exec pf_droidflow adb devices

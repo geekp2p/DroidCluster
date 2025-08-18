@@ -21,21 +21,35 @@ if [[ ! -f "$CFG" ]]; then
   sleep 3600
 fi
 
-connect_emulator() {
+connect_adb() {
   local host="${1:-droid_emulator}"
   local port="${2:-5555}"
   local delay=2
   local max_delay=30
-  for attempt in 1 2 3; do
-    logv "[watcher][emu] adb connect ${host}:${port} (attempt ${attempt})"
+  local attempts=5
+  local state
+  for ((i=1; i<=attempts; i++)); do
+    logv "[watcher][emu] adb connect ${host}:${port} (attempt $i/$attempts)"
     if adb connect "${host}:${port}" >/dev/null 2>&1; then
-      echo "[watcher][emu] connected ${host}:${port}"
-      return 0
+      state=$(adb devices 2>/dev/null | awk -v key="${host}:${port}" '$1==key {print $2}')
+      if [[ "$state" == "unauthorized" ]]; then
+        logv "[watcher][emu] unauthorized ${host}:${port}, removing adb keys"
+        if rm -f ~/.android/adbkey ~/.android/adbkey.pub 2>/dev/null; then
+          logv "[watcher][emu] adb keys removed"
+        else
+          logv "[watcher][emu] failed to remove adb keys"
+        fi
+        adb kill-server >/dev/null 2>&1 || true
+      else
+        echo "[watcher][emu] connected ${host}:${port}"
+        return 0
+      fi
     fi
-    logv "[watcher][emu] connect failed, retrying in ${delay}s"
-    sleep $delay
-    delay=$((delay*2))
-    if (( delay > max_delay )); then delay=$max_delay; fi
+    if (( i < attempts )); then
+      logv "[watcher][emu] connect failed, retrying in ${delay}s"
+      sleep "$delay"
+      (( delay = delay * 2 > max_delay ? max_delay : delay * 2 ))
+    fi
   done
   echo "[watcher][emu] failed to connect ${host}:${port}"
   return 1
@@ -71,7 +85,7 @@ while true; do
             if [[ ${suppress_until[$key]:-0} -gt $now ]]; then
               continue
             fi
-            if connect_emulator "$h" "$p"; then
+            if connect_adb "$h" "$p"; then
               suppress_until[$key]=$((now+15))
             fi
           done
