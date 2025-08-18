@@ -40,6 +40,8 @@ connect_adb() {
           logv "[watcher][emu] failed to remove adb keys"
         fi
         adb kill-server >/dev/null 2>&1 || true
+        (( i-- ))
+        continue
       else
         echo "[watcher][emu] connected ${host}:${port}"
         return 0
